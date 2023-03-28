@@ -1,0 +1,29 @@
+{
+  "name": "bjs-template",
+  "version": "1.0.0",
+  "description": "A quick Babylon.js scene template",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack",
+    "start": "webpack serve --port 8080"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babylonjs/core": "^5.52.0",
+    "@babylonjs/inspector": "^5.52.0",
+    "clean-webpack-plugin": "^4.0.0",
+    "html-webpack-plugin": "^5.5.0",
+    "ts-loader": "^9.4.2",
+    "typescript": "^5.0.2",
+    "webpack": "^5.76.3",
+    "webpack-cli": "^5.0.1",
+    "webpack-dev-server": "^4.13.1"
+  },
+  "dependencies": {
+    "@babylonjs/gui": "^5.52.0",
+    "@babylonjs/materials": "^5.52.0",
+    "copy-webpack-plugin": "^11.0.0",
+    "tsc-init": "^2.1.0"
+  }
+}
