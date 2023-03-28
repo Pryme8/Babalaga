@@ -1,5 +1,6 @@
 import { Vector2, Vector3 } from "@babylonjs/core/Maths/math.vector"
 import { Observable } from "@babylonjs/core/Misc/observable"
+import { AudioCache, AudioManager } from "../../elements/audio/audio"
 import { Controls } from "../../elements/controls/controls"
 import { SpriteCache } from "../../elements/spriteCache/spriteCache"
 import { VoxelSprite } from "../../elements/voxelSprites/voxelSprite"
@@ -119,6 +120,7 @@ const CheckForShooting = (player: VoxelSprite)=>{
             let l = player.metadata.attachedShips.left.length
             let r = player.metadata.attachedShips.right.length
             SpawnBullet(player, l, r)
+            AudioManager.PlayOneShotThen(AudioCache.PlayerShoot, undefined, 1)
         }
         playerLastShot += Game.Delta
     }else{

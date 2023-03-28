@@ -1,4 +1,4 @@
-import { Engine, Scene, Vector3, HemisphericLight, MeshBuilder, Mesh, FreeCamera, Color4, DefaultRenderingPipeline, Vector2, Observable, Texture } from "@babylonjs/core"
+
 import { VoxelSpaceBackground } from "./elements/spaceBackground"
 import { VoxelSprite } from "./elements/voxelSprites";
 import { Controls } from "./elements/controls/controls";
@@ -8,6 +8,17 @@ import { LightBlueFontColor, SetupGamePlayingUI, SetupGeneralUI, ShowScreenTextT
 import { CustomMaterial } from "@babylonjs/materials/custom/customMaterial";
 import { OnLevelSpawned, SpawnNormalLevel } from "./functionality/levels/levels";
 import { WaitForSecondsThen } from "./functionality/gameActions/gameActions";
+import { Observable } from "@babylonjs/core/Misc/observable";
+import { Scene } from "@babylonjs/core/scene";
+import { Engine } from "@babylonjs/core/Engines/engine";
+import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
+import { DefaultRenderingPipeline } from "@babylonjs/core/PostProcesses/RenderPipeline/Pipelines/defaultRenderingPipeline";
+import { Color4, Vector2 } from "@babylonjs/core/Maths/math";
+import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
+import { Texture } from "@babylonjs/core/Materials/Textures/texture";
+import { AudioCache, AudioManager } from "./elements/audio/audio";
 
 export enum GameStates{
     Landing,
@@ -97,23 +108,32 @@ export class Game{
         
         // const tempPlayArea = MeshBuilder.CreatePlane('tempPlayArea', {width: 13, height: 17}, this.scene)
         // tempPlayArea.visibility  = 0.5
-
+        
         const controls = new Controls(this.scene)
         SpriteCache.PrepCache(this.scene)
 
-        SpriteCache.OnPrepDone.addOnce(()=>{    
-            SetupGeneralUI()
-            ShowScreenTextThen("Player 1", LightBlueFontColor, 2, ()=>{
-                Game.GameState = GameStates.BetweenLevels
-                SetupGamePlayingUI()
-                SpawnNewPlayer(true)                             
-                OnLevelSpawned.addOnce(()=>{
-                    WaitForSecondsThen(0.8, ()=>{
-                        Game.GameState = GameStates.Playing
-                    })                    
-                })                
-                SpawnNormalLevel()
-            })        
+        SpriteCache.OnPrepDone.addOnce(()=>{
+            AudioManager.OnAllSoundsLoaded.addOnce(()=>{
+                SetupGeneralUI()
+                WaitForSecondsThen(0.6, ()=>{
+                    AudioManager.PlayOneShotThen(AudioCache.CoinDrop, ()=>{
+                        AudioManager.PlayOneShotThen(AudioCache.GameStart, ()=>{
+                            Game.GameState = GameStates.BetweenLevels
+                            SetupGamePlayingUI()
+                            SpawnNewPlayer(true)                             
+                            OnLevelSpawned.addOnce(()=>{
+                                WaitForSecondsThen(0.8, ()=>{
+                                    Game.GameState = GameStates.Playing
+                                })                    
+                            })                
+                            SpawnNormalLevel()
+                        })                        
+                        ShowScreenTextThen("Player 1", LightBlueFontColor, 5, ()=>{})
+                    })
+                })
+            })    
+  
+            AudioManager.Initialize(this.scene, 3)
         })     
 
         this.scene.onBeforeRenderObservable.add(()=>{

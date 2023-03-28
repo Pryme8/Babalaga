@@ -1,4 +1,8 @@
-import { Mesh, Color4, Scene, MeshBuilder, StandardMaterial, Color3, Matrix, Vector3 } from "@babylonjs/core"
+
+import { Color3, Color4, Matrix, Vector3 } from "@babylonjs/core/Maths/math"
+import { Mesh } from "@babylonjs/core/Meshes/mesh"
+import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder"
+import { Scene } from "@babylonjs/core/scene"
 import { CustomMaterial } from "@babylonjs/materials/custom/customMaterial"
 import { Game, GameStates } from "../../game"
 

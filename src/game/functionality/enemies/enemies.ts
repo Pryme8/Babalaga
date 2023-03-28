@@ -1,4 +1,5 @@
 import { Vector2, Scalar, Curve3, Vector3 } from "@babylonjs/core"
+import { AudioCache, AudioManager } from "../../elements/audio/audio"
 import { SpriteCache } from "../../elements/spriteCache/spriteCache"
 import { VoxelSprite } from "../../elements/voxelSprites"
 import { Game, GameCache, GameStates } from "../../game"
@@ -49,6 +50,7 @@ export const KillEnemey = (enemy: VoxelSprite) => {
         death.dispose()
     })
     death.playAnimation("default")
+    AudioManager.PlayOneShotThen(AudioCache.EnemyDeath, undefined, 2)
 }
 
 export const RemoveEnemy = (enemy: VoxelSprite, disposeSprite: boolean = true) => {
@@ -234,6 +236,7 @@ export const AttachBugBehavior = (bug: VoxelSprite, endPos: Vector2, startPos: V
                 attackTime += Game.Delta
                 if(attackRunMode == AttackModes.SwingIn){
                     if(attackRunFlip == 0){
+                        AudioManager.PlayOneShotThen(AudioCache.EnemyDropping)
                         attackRunFlip = (Math.random() >= 0.5) ? -1 : 1
                         attackStartPos.set(bug.position.x, bug.position.y)
                     }
