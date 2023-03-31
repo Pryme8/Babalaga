@@ -11,6 +11,8 @@ export class SpriteCache{
     public static BugTractorBeam: VoxelSprite
     public static SmallBugBee: VoxelSprite
     public static SmallBugMoth: VoxelSprite
+
+    public static EnemyBullet: VoxelSprite
     public static LevelOne: VoxelSprite
     public static LevelFive: VoxelSprite
     public static LevelTen: VoxelSprite
@@ -204,7 +206,19 @@ export class SpriteCache{
             bigBug.metadata.health = 2  
             bigBug.metadata.beamupTime = 4  
             bigBug.metadata.colliderSize = new Vector2(0.4, 0.4)     
-            bigBug.metadata.scoreValue = 50      
+            bigBug.metadata.scoreValue = 500   
+            
+            bigBug.metadata.canShoot = true
+            bigBug.metadata.baseShootingChance = 0.05
+            bigBug.metadata.salvoCheckInterval = 1.0
+            bigBug.metadata.lastSalvoCheck = 0
+            bigBug.metadata.maxSalvosPerRun = 4
+            bigBug.metadata.salvosTaken = 0 
+            bigBug.metadata.shotsPerSalvo = 1
+            bigBug.metadata.delayBetweenShots = 0
+            bigBug.metadata.lastShotAt = 0
+            bigBug.metadata.shotTakenPerSalvo = 0
+            bigBug.metadata.isShooting = false
                 
             SpriteCache.BigBug = bigBug
             SpriteCache.BigBug.setEnabled(false)
@@ -361,10 +375,24 @@ export class SpriteCache{
                 tolerance: 2,
                 center: new Vector2(7, 7)
             })
+
             smallBugMoth.metadata.kind = "smallBug"
+
             smallBugMoth.metadata.health = 1                     
             smallBugMoth.metadata.colliderSize = new Vector2(0.35, 0.35)
-            smallBugMoth.metadata.scoreValue = 10
+            smallBugMoth.metadata.scoreValue = 100
+
+            smallBugMoth.metadata.canShoot = true
+            smallBugMoth.metadata.baseShootingChance = 0.1
+            smallBugMoth.metadata.salvoCheckInterval = 1.2
+            smallBugMoth.metadata.lastSalvoCheck = 0
+            smallBugMoth.metadata.maxSalvosPerRun = 1
+            smallBugMoth.metadata.salvosTaken = 0 
+            smallBugMoth.metadata.shotsPerSalvo = 1
+            smallBugMoth.metadata.delayBetweenShots = 0
+            smallBugMoth.metadata.lastShotAt = 0
+            smallBugMoth.metadata.shotTakenPerSalvo = 0
+            smallBugMoth.metadata.isShooting = false
 
             smallBugMoth.addAnimation({
                 name: "default",
@@ -405,7 +433,19 @@ export class SpriteCache{
             smallBugBee.metadata.kind = "smallBug"
             smallBugBee.metadata.health = 1 
             smallBugBee.metadata.colliderSize = new Vector2(0.35, 0.35)
-            smallBugBee.metadata.scoreValue = 15
+            smallBugBee.metadata.scoreValue = 150
+
+            smallBugBee.metadata.canShoot = true
+            smallBugBee.metadata.baseShootingChance = 0.1
+            smallBugBee.metadata.salvoCheckInterval = 0.8
+            smallBugBee.metadata.lastSalvoCheck = 0
+            smallBugBee.metadata.maxSalvosPerRun = 2
+            smallBugBee.metadata.salvosTaken = 0 
+            smallBugBee.metadata.shotsPerSalvo = 1
+            smallBugBee.metadata.delayBetweenShots = 0
+            smallBugBee.metadata.lastShotAt = 0
+            smallBugBee.metadata.shotTakenPerSalvo = 0
+            smallBugBee.metadata.isShooting = false
 
             smallBugBee.addAnimation({
                 name: "default",
@@ -424,6 +464,19 @@ export class SpriteCache{
             })
             SpriteCache.SmallBugBee = smallBugBee      
             SpriteCache.SmallBugBee.setEnabled(false)   
+
+            const enemyBullet = new VoxelSprite('enemyBullet', baseSize, scene)
+            enemyBullet.addFrame("0", {
+                atlas: spriteAtlas,
+                start: new Vector2((18*17) + 1, (18*8) + 10),
+                size: new Vector2(16, 16),
+                discard: Color3.Black(),
+                tolerance: 2,
+                center: new Vector2(8, 8)
+            })     
+            enemyBullet.setEnabled(false)
+            enemyBullet.metadata.colliderSize = new Vector2(0.1, 0.1)
+            SpriteCache.EnemyBullet = enemyBullet
 
             const levelOne = new VoxelSprite('levelOne', baseSize, scene)
             levelOne.addFrame("0", {
@@ -488,7 +541,7 @@ export class SpriteCache{
             SpriteCache.OnPrepDone.notifyObservers(null)
         }
 
-        spriteAtlas.src = `https://raw.githubusercontent.com/Pryme8/Playground_Dump/master/Galaga/spriteRef.png`
+        spriteAtlas.src = `./assets/spriteRef.png`
         spriteAtlas.crossOrigin = `Anonymous`
     }
 }

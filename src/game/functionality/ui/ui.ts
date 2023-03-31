@@ -1,4 +1,5 @@
-import { MeshBuilder } from "@babylonjs/core"
+import { MeshBuilder, PointerEventTypes } from "@babylonjs/core"
+import { InputManager } from "@babylonjs/core/Inputs/scene.inputManager"
 import { Vector3 } from "@babylonjs/core/Maths/math.vector"
 import { Mesh } from "@babylonjs/core/Meshes/mesh"
 import { Observable } from "@babylonjs/core/Misc/observable"
@@ -7,7 +8,7 @@ import { TextBlock } from "@babylonjs/gui/2D/controls/textBlock"
 import { SpriteCache } from "../../elements/spriteCache/spriteCache"
 import { VoxelSprite } from "../../elements/voxelSprites"
 import { Game, GameCache } from "../../game"
-import { DoForEachWithDelayThen, OnGoingToNextLevel } from "../gameActions/gameActions"
+import { DoForEachWithDelayThen, OnGoingToNextLevel, WaitUntilConditionThen } from "../gameActions/gameActions"
 import { OnPlayerSpawned } from "../player/player"
 import { OnExtraLifeAdded, OnScoreUpdate } from "../scoring/scoring"
 
@@ -193,5 +194,29 @@ export const ShowScreenTextThen = (text: string, color:string, duration:number, 
             tempPlaneMesh.dispose()
             then()
         }
+    })
+}
+
+export const ShowScreenTextUntilClickThen = (text: string, color:string, then: ()=> void) => {
+    const tempPlaneMesh = MeshBuilder.CreatePlane('tempPlane', {width: 13, height: 1}, Game.Scene)
+    const tempUI = AdvancedDynamicTexture.CreateForMesh(tempPlaneMesh, 1024, 1024/13, false)
+    const tempText = new TextBlock('tempText', text)
+    tempText.color = color
+    ApplyBasicFont(tempText)
+    tempUI.addControl(tempText)
+
+    let click = false
+
+    const obs = Game.Scene.onPointerObservable.add((pointerInfo)=>{
+        if(pointerInfo.type == PointerEventTypes.POINTERDOWN){
+            Game.Scene.onPointerObservable.remove(obs)
+            click = true
+        }
+    })
+
+    WaitUntilConditionThen(()=> click, ()=>{
+        tempUI.dispose()
+        tempPlaneMesh.dispose()
+        then()
     })
 }

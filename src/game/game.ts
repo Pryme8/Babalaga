@@ -4,7 +4,7 @@ import { VoxelSprite } from "./elements/voxelSprites";
 import { Controls } from "./elements/controls/controls";
 import { SpriteCache } from "./elements/spriteCache/spriteCache";
 import { SpawnNewPlayer } from "./functionality/player/player";
-import { LightBlueFontColor, SetupGamePlayingUI, SetupGeneralUI, ShowScreenTextThen } from "./functionality/ui/ui";
+import { LightBlueFontColor, SetupGamePlayingUI, SetupGeneralUI, ShowScreenTextThen, ShowScreenTextUntilClickThen } from "./functionality/ui/ui";
 import { CustomMaterial } from "@babylonjs/materials/custom/customMaterial";
 import { OnLevelSpawned, SpawnNormalLevel } from "./functionality/levels/levels";
 import { WaitForSecondsThen } from "./functionality/gameActions/gameActions";
@@ -36,6 +36,7 @@ export enum GameStates{
 }
 
 export class GameCache{
+    static Difficulty: number = 1
     static HighScore: number = parseInt(window.localStorage.getItem("BabalagaHighScore") ?? '0', 10) ?? 0    
     static CurrentScore: number = 0
     static CurrentLevel: number = 1
@@ -113,26 +114,31 @@ export class Game{
         SpriteCache.PrepCache(this.scene)
 
         SpriteCache.OnPrepDone.addOnce(()=>{
-            AudioManager.OnAllSoundsLoaded.addOnce(()=>{
-                SetupGeneralUI()
-                WaitForSecondsThen(0.6, ()=>{
-                    AudioManager.PlayOneShotThen(AudioCache.CoinDrop, ()=>{
-                        AudioManager.PlayOneShotThen(AudioCache.GameStart, ()=>{
-                            Game.GameState = GameStates.BetweenLevels
-                            SetupGamePlayingUI()
-                            SpawnNewPlayer(true)                             
-                            OnLevelSpawned.addOnce(()=>{
-                                WaitForSecondsThen(0.8, ()=>{
-                                    Game.GameState = GameStates.Playing
-                                })                    
-                            })                
-                            SpawnNormalLevel()
-                        })                        
-                        ShowScreenTextThen("Player 1", LightBlueFontColor, 5, ()=>{})
+            AudioManager.OnAllSoundsLoaded.addOnce(()=>{        
+                SetupGeneralUI()                
+                    ShowScreenTextUntilClickThen('Click to Insert Coin', "white", ()=>{
+                        Engine.audioEngine.unlock()
+                        AudioManager.PlayOneShotThen(AudioCache.CoinDrop, ()=>{
+                            WaitForSecondsThen(0.4, ()=>{
+                                AudioManager.PlayOneShotThen(AudioCache.GameStart, ()=>{
+                                    Game.GameState = GameStates.BetweenLevels
+                                    SetupGamePlayingUI()
+                                    SpawnNewPlayer(true)                             
+                                    OnLevelSpawned.addOnce(()=>{
+                                        WaitForSecondsThen(0.8, ()=>{
+                                            Game.GameState = GameStates.Playing
+                                        })                    
+                                    })                
+                                    SpawnNormalLevel()
+                                })      
+                                WaitForSecondsThen(1, ()=>{                  
+                                    ShowScreenTextThen("Player 1", LightBlueFontColor, 5, ()=>{})
+                                })
+                            })
+                        })                    
                     })
-                })
-            })    
-  
+                })         
+
             AudioManager.Initialize(this.scene, 3)
         })     
 

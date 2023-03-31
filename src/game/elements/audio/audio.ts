@@ -7,6 +7,7 @@ export class AudioCache{
     public static GameStart: Sound
     public static PlayerShoot: Sound
     public static EnemyDeath: Sound
+    public static EnemyDamage: Sound
     public static EnemyDropping: Sound
 }
 
@@ -36,9 +37,10 @@ export class AudioManager{
         const prepList = [
             {name: "CoinDrop", path: "assets/audio/CoinDrop.wav", baseVolume: 0.5},
             {name: "GameStart", path: "assets/audio/GameStart.wav", baseVolume: 0.5},
-            {name: "PlayerShoot", path: "assets/audio/PlayerShoot.wav", baseVolume: 0.5},
-            {name: "EnemyDeath", path: "assets/audio/EnemyDeath.wav", baseVolume: 0.5},
-            {name: "EnemyDropping", path: "assets/audio/EnemyDropping.wav", baseVolume: 0.5},
+            {name: "PlayerShoot", path: "assets/audio/PlayerShoot.wav", baseVolume: 0.1},
+            {name: "EnemyDeath", path: "assets/audio/EnemyDeath.wav", baseVolume: 0.2},
+            {name: "EnemyDamage", path: "assets/audio/EnemyDamage.wav", baseVolume: 0.2},
+            {name: "EnemyDropping", path: "assets/audio/EnemyDropping.wav", baseVolume: 0.25},
         ]
         AudioManager.OnAllSoundsLoaded.addOnce(()=>{
             console.log("All sounds loaded")

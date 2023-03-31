@@ -4,6 +4,8 @@ import { SpriteCache } from "../../elements/spriteCache/spriteCache"
 import { VoxelSprite } from "../../elements/voxelSprites"
 import { Game, GameCache, GameStates } from "../../game"
 import { GoToNextLevel, WaitForSecondsThen } from "../gameActions/gameActions"
+import { AreRectanglesOverlapping } from "../hitTests/hitTests"
+import { PlayerShips } from "../player/player"
 
 export enum BugModes{
     FlyIn,
@@ -124,6 +126,87 @@ export const BugsStartWaiting = ()=>{
     }
 }
 
+
+export const BugResetShootingMetadata = (bug: VoxelSprite)=>{
+    if(bug.metadata.canShoot){
+        bug.metadata.isShooting = false
+        bug.metadata.salvosTaken = 0
+        bug.metadata.lastSalvoCheck = 0
+        bug.metadata.lastShotAt = 0
+        bug.metadata.shotTakenPerSalvo = 0
+    }
+}
+
+export const BugCheckShootingChance = (bug: VoxelSprite)=>{
+    if(bug.metadata.baseShootingChance === undefined){
+        return false
+    }else{
+        return Math.random() <= bug.metadata.baseShootingChance * GameCache.Difficulty
+    }
+}
+
+export const BugShootingRoutine = (bug: VoxelSprite, forceCheck: boolean = false)=>{
+    if(bug.metadata.canShoot && bug.position.y > -4){   
+        if(!bug.metadata.isShooting){
+            if(bug.metadata.salvosTaken == bug.metadata.maxSalvosPerRun){
+                return
+            }
+            //Shot Check
+            let shoot = false
+            if(forceCheck){
+                shoot = BugCheckShootingChance(bug)
+            }else{
+                bug.metadata.lastSalvoCheck += Game.Delta
+                if(bug.metadata.lastSalvoCheck >= (bug.metadata.salvoCheckInterval / GameCache.Difficulty)){
+                    bug.metadata.lastSalvoCheck = 0
+                    shoot = BugCheckShootingChance(bug)
+                }
+            }
+            if(shoot){
+                bug.metadata.isShooting = true
+                bug.metadata.salvosTaken++
+                bug.metadata.lastShotAt = bug.metadata.delayBetweenShots / GameCache.Difficulty
+                bug.metadata.shotTakenPerSalvo = 0
+            }
+        }else{
+            //Continue Salvo
+            if( bug.metadata.shotTakenPerSalvo < bug.metadata.shotsPerSalvo){
+                bug.metadata.lastShotAt += Game.Delta
+                if(bug.metadata.lastShotAt >= bug.metadata.delayBetweenShots / GameCache.Difficulty){
+                    bug.metadata.lastShotAt = 0
+                    bug.metadata.shotTakenPerSalvo++
+                    SpawnEnemyBullet(bug)
+                }
+            }else{
+                bug.metadata.isShooting = false
+            }                
+        } 
+    }
+}
+
+const SpawnEnemyBullet = (bug: VoxelSprite) => {
+    const target = GameCache.MainPlayer.root.getAbsolutePosition().add(GameCache.MainPlayer.root.right.clone().scale((Math.random() * 2 - 1) * (2 / GameCache.Difficulty)))
+    const direction = target.subtract(bug.position).normalize()
+    const startPos = bug.position.clone().add(direction.clone().scale(0.6))
+    const bullet = SpriteCache.EnemyBullet.clone('EnemyBullet')
+    bullet.position = startPos
+    bullet.metadata.direction = direction  
+    bullet.rotation.z = Math.atan2(direction.y, direction.x) + Math.PI * 0.5 
+    bullet.addOnUpdate(()=>{
+        EnemyBulletUpdate(bullet)
+    }) 
+    AddEnemyBullet(bullet)
+}
+
+const EnemyBulletSpeed = 10
+const EnemyBulletUpdate = (bullet: VoxelSprite) => {
+    bullet.position.addInPlace(bullet.metadata.direction.clone().scale(((EnemyBulletSpeed + (GameCache.Difficulty - 1)) * Game.Delta)))
+    if(bullet.position.y <= -10){
+        RemoveEnemyBullet(bullet, true)   
+        return
+    }
+}
+
 export const AttachBugBehavior = (bug: VoxelSprite, endPos: Vector2, startPos: Vector2, delay: number = 0) => {
     let time = 0
     let mode = BugModes.FlyIn
@@ -142,7 +225,7 @@ export const AttachBugBehavior = (bug: VoxelSprite, endPos: Vector2, startPos: V
     let attackVariation = 0
     const freqVariation = Math.random() * 2 - 1
 
-    const flyToPosition = (position: Vector2, toModeOnDone: BugModes = BugModes.Idle)=>{
+    const flyToPosition = (position: Vector2, toModeOnDone: BugModes = BugModes.Idle, additionalOnDone?: ()=> void)=>{
         const direction = (new Vector2(bug.position.x - (position.x), bug.position.y - position.y)).normalize()
         bug.position.x -= (direction.x * Game.Delta * flightSpeed)
         bug.position.y -= (direction.y * Game.Delta * flightSpeed)          
@@ -156,6 +239,9 @@ export const AttachBugBehavior = (bug: VoxelSprite, endPos: Vector2, startPos: V
             bug.position.x = position.x
             bug.position.y = position.y            
             mode = toModeOnDone
+            if(additionalOnDone){
+                additionalOnDone()
+            }
         }     
     }
 
@@ -235,11 +321,13 @@ export const AttachBugBehavior = (bug: VoxelSprite, endPos: Vector2, startPos: V
             }else if(mode == BugModes.Attack){
                 attackTime += Game.Delta
                 if(attackRunMode == AttackModes.SwingIn){
+
                     if(attackRunFlip == 0){
                         AudioManager.PlayOneShotThen(AudioCache.EnemyDropping)
                         attackRunFlip = (Math.random() >= 0.5) ? -1 : 1
                         attackStartPos.set(bug.position.x, bug.position.y)
                     }
+
                     if(attackTime <= attackStartSpeed){         
                         const _delta = attackTime/attackStartSpeed                
                         const id = _delta*(BugFlightSplines.AttackStart[0].length-2)
@@ -264,7 +352,12 @@ export const AttachBugBehavior = (bug: VoxelSprite, endPos: Vector2, startPos: V
                             attackVariation = -1
                         }                    
                     }
+
+                    BugShootingRoutine(bug)   
+                    return
+
                 }else if(attackRunMode == AttackModes.Dropping){
+                   
                     const yD = 1-((endPos.y - bug.position.y) / 8)
                     const xSwing = (Math.sin((yD * yD) * (6 + freqVariation) * attackRunFlip)) * 8
                     const direction = (new Vector2(bug.position.x - xSwing, 1)).normalize()
@@ -278,7 +371,7 @@ export const AttachBugBehavior = (bug: VoxelSprite, endPos: Vector2, startPos: V
                             mode = BugModes.BeamUpStart
                             return
                         }
-                    }                    
+                    }
 
                     if(bug.position.y <= -10){
                         //ActualReset
@@ -289,9 +382,20 @@ export const AttachBugBehavior = (bug: VoxelSprite, endPos: Vector2, startPos: V
                         attackRunFlip = 0
                         bug.position.y = 11 + Math.random()
                         bug.position.x = (Math.random() * 2 - 1) * 8
-                    }        
+                        if(bug.metadata.capturedPlayer){
+                            bug.metadata.capturedPlayer.position = bug.position.clone().add(bug.root.up)
+                        }
+                        BugResetShootingMetadata(bug)
+                        return
+                    }  
+
+                    BugShootingRoutine(bug)     
+                    return               
+                    
                 }else if(attackRunMode == AttackModes.Reset){
-                    flyToPosition(new Vector2(endPos.x + offsetDirection.x, endPos.y  + offsetDirection.y), BugModes.Idle)           
+                    flyToPosition(new Vector2(endPos.x + offsetDirection.x, endPos.y  + offsetDirection.y), BugModes.Idle, ()=>{
+                        BugResetShootingMetadata(bug)
+                    })           
                 }
             }else if(mode == BugModes.FlyIn){
                 if(time >= delay){
@@ -310,8 +414,12 @@ export const AttachBugBehavior = (bug: VoxelSprite, endPos: Vector2, startPos: V
                         const angle = Math.atan2(direction.x, -direction.y)
                         bug.rotation.z = angle
                     }else{                    
-                        flyToPosition(idlePosition, BugModes.Idle)
+                        flyToPosition(idlePosition, BugModes.Idle, ()=>{
+                            BugResetShootingMetadata(bug)
+                        })
                     }
+
+                    BugShootingRoutine(bug)
                 }
             }else if(mode == BugModes.BeamUpStart){
                 flyToPosition(bug.metadata.attackPostionCache, BugModes.BeamUp)    

@@ -5,7 +5,7 @@ import { Controls } from "../../elements/controls/controls"
 import { SpriteCache } from "../../elements/spriteCache/spriteCache"
 import { VoxelSprite } from "../../elements/voxelSprites/voxelSprite"
 import { Game, GameCache, GameStates } from "../../game"
-import { BugModes, BugsStartWaiting, BugStopWaiting, Enemies, EnemyBullets, KillEnemey, PauseAllBugs, RemoveEnemy, UnpauseAllBugs } from "../enemies/enemies"
+import { BugModes, BugsStartWaiting, BugStopWaiting, Enemies, EnemyBullets, KillEnemey, PauseAllBugs, RemoveEnemy, RemoveEnemyBullet, UnpauseAllBugs } from "../enemies/enemies"
 import { WaitForSecondsThen } from "../gameActions/gameActions"
 import { AreRectanglesOverlapping } from "../hitTests/hitTests"
 import { ScoreUpdate } from "../scoring/scoring"
@@ -34,7 +34,7 @@ OnPlayerCapturedAnimationDone.add((player)=>{
     }) 
 })
 
-const PlayerShips: VoxelSprite[] = []
+export const PlayerShips: VoxelSprite[] = []
 
 export const SpawnNewPlayer = (deductLife: boolean)=>{
     const player = SpriteCache.Player.clone('Player') 
@@ -93,12 +93,13 @@ const CheckPlayerEnemeyBulletOverlap = (player: VoxelSprite, playerOverlap)=>{
     for(let i = 0; i < EnemyBullets.length; i++){
         const bullet = EnemyBullets[i]
         const abs = bullet.root.getAbsolutePosition()
+        if(bullet.root.isDisposed()){continue}
         if(AreRectanglesOverlapping(playerOverlap, 
             {
                 position: {x:abs.x, y:abs.y},
                 size: {x:bullet.metadata.colliderSize.x, y:bullet.metadata.colliderSize.y},
             })
-        ){  
+        ){
             if(bullet.metadata.kind == "tractorBeam"){
                 Game.GameState = GameStates.PlayerCaptured                
                 if(player.metadata.isMainShip){
@@ -109,6 +110,15 @@ const CheckPlayerEnemeyBulletOverlap = (player: VoxelSprite, playerOverlap)=>{
                 }    
                 bullet.metadata.onCapture(player)            
                 return false
+            }else{   
+                RemoveEnemyBullet(bullet)                
+                if(player.metadata.isMainShip){             
+                    DestroyAllAttachedShips(player)
+                    MainPlayerDeath(player)                    
+                }else{                    
+                    player.root.setParent(null)
+                    DestroyAttachedPastNumber(GameCache.MainPlayer, player.metadata.attachedLocation)
+                }                
             }
         }
     }
@@ -147,7 +157,7 @@ const DestroyAllAttachedShips = (player: VoxelSprite)=>{
     for(let i = 0; i < player.metadata.attachedShips.left.length; i++){
         player.metadata.attachedShips.left[i].root.setParent(null)
         setTimeout(()=>{
-            SpawnPlayerDeathExplosion(player.metadata.attachedShips.left[i].position)
+            SpawnPlayerDeathExplosion(player.metadata.attachedShips.left[i].getAbsolutePosition())
             RemovePlayer(player.metadata.attachedShips.left[i])
             if(i == player.metadata.attachedShips.left.length - 1){
                 player.metadata.attachedShips.left = []
@@ -157,7 +167,7 @@ const DestroyAllAttachedShips = (player: VoxelSprite)=>{
     for(let i = 0; i < player.metadata.attachedShips.right.length; i++){
         player.metadata.attachedShips.right[i].root.setParent(null)
         setTimeout(()=>{
-            SpawnPlayerDeathExplosion(player.metadata.attachedShips.right[i].position)
+            SpawnPlayerDeathExplosion(player.metadata.attachedShips.right[i].getAbsolutePosition())
             RemovePlayer(player.metadata.attachedShips.right[i])
             if(i == player.metadata.attachedShips.right.length - 1){
                 player.metadata.attachedShips.right = []
@@ -180,7 +190,7 @@ const DestroyAttachedPastNumber = (player: VoxelSprite, destroyPast: number)=>{
     for(let i = 0; i < destroy.length; i++){
         destroy[i].root.setParent(null)
         setTimeout(()=>{
-            SpawnPlayerDeathExplosion(destroy[i].position)
+            SpawnPlayerDeathExplosion(destroy[i].getAbsolutePosition())
             destroy[i].dispose()
         }, 200 * i)
     }
@@ -191,7 +201,7 @@ export const PlayerControlUpdate = ( player: VoxelSprite )=>{
         const playerAbs = player.root.getAbsolutePosition()
         const playerOverlap = {
             position:{x: playerAbs.x, y: playerAbs.y},
-            size: {x:0.05, y:0.1}
+            size: {x:0.2, y:0.2}
         }
         if(!player.metadata.isCaptured && player.metadata.isMainShip){
             if(Game.GameState == GameStates.PlayerCaptured){
@@ -370,8 +380,7 @@ const SpawnBullet = (player: VoxelSprite, leftExtra: number, rightExtra: number)
         bullet.addOnUpdate(()=>{
             PlayerBulletUpdate(bullet)
         })
-    }
-   
+    }   
 }
 
 const playerBulletSpeed = 12
@@ -405,6 +414,7 @@ const PlayerBulletUpdate = (bullet: VoxelSprite) => {
                     }else{
                         if(enemy.metadata.kind == "bigBug"){
                             if(enemy.metadata.health == 1){
+                                AudioManager.PlayOneShotThen(AudioCache.EnemyDamage, undefined, 2)
                                 enemy.playAnimation('defaultB', enemy.getCurrentAnimationTime())
                             }                    
                         }

@@ -51,4 +51,13 @@ export const DoForEachWithDelayThen = (array: any[], delay: number, func: (item:
     }
 }
 
+export const WaitUntilConditionThen = (condition: ()=>boolean, then: ()=>void) => {
+    const obs = Game.Scene.onBeforeRenderObservable.add(()=>{
+        if(condition()){
+            Game.Scene.onBeforeRenderObservable.remove(obs)
+            then()
+        }
+    })
+}
+
 
